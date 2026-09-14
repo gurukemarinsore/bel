@@ -15,7 +15,8 @@
   <script>
     const APP_CONFIG = {
       version: "1.05.7",
-      driveShareUrl: "https://drive.google.com/file/d/1eq8BnXN-vvMKNbS-67LeFJo1VtgTOI6T/view?usp=sharing"
+      driveShareUrl: "https://drive.google.com/file/d/1eq8BnXN-vvMKNbS-67LeFJo1VtgTOI6T/view?usp=sharing",
+      licenseGeneratorUrl: "https://script.google.com/macros/s/AKfycbwxT_X6aAoCe9AXRCK_oIusagk9YkPVdQYfC8UxL6uT5z8LjWCLil0hXeSxdHG7gCHwGw/exec"
     };
   </script>
 
@@ -139,14 +140,35 @@
       white-space:nowrap;
     }
 
+    .brand-icon-trigger {
+      width:35px;
+      height:35px;
+      display:grid;
+      place-items:center;
+      flex-shrink:0;
+      padding:0;
+      border:0;
+      background:transparent;
+      appearance:none;
+      cursor:pointer;
+      touch-action:manipulation;
+      -webkit-tap-highlight-color:transparent;
+    }
+
+    .brand-icon-trigger:focus-visible {
+      outline:2px solid var(--blue);
+      outline-offset:4px;
+      border-radius:8px;
+    }
+
     .brand-icon {
       width:35px;
       height:35px;
-      border-radius:11px;
       display:block;
-      object-fit:cover;
+      object-fit:contain;
       flex-shrink:0;
-      box-shadow:0 0 0 1px color-mix(in srgb,var(--line) 65%,transparent);
+      user-select:none;
+      -webkit-user-drag:none;
     }
 
     svg { display:block; flex-shrink:0; }
@@ -379,7 +401,7 @@
       .description { max-width:560px; }
       .download-wrap { margin-top:12px; }
       .download { min-height:46px; }
-      .brand-icon { width:28px; height:28px; border-radius:9px; }
+      .brand-icon-trigger,.brand-icon { width:28px; height:28px; }
       .theme-toggle { width:34px; height:34px; border-radius:10px; }
       footer { font-size:12px; padding:9px 0; }
     }
@@ -404,7 +426,9 @@
 
     <header>
       <div class="brand">
-        <img class="brand-icon" src="icon.png" alt="" aria-hidden="true">
+        <button class="brand-icon-trigger" id="brand-easter-egg" type="button" aria-label="Bel Otomatis" title="Bel Otomatis">
+          <img class="brand-icon" src="icon.png" alt="" aria-hidden="true" draggable="false">
+        </button>
         Bel Otomatis
       </div>
 
@@ -476,6 +500,7 @@
 
       const root = document.documentElement;
       const themeToggle = document.getElementById("theme-toggle");
+      const brandEasterEgg = document.getElementById("brand-easter-egg");
       const versionEl = document.getElementById("app-version");
       const downloadLink = document.getElementById("download-link");
       const themeMeta = document.querySelector('meta[name="theme-color"]');
@@ -523,6 +548,37 @@
       });
 
       syncThemeUi();
+
+      // ===== Easter egg: 3 klik/tap cepat pada ikon aplikasi =====
+      // Jika jeda antar klik/tap melebihi batas ini, hitungan diulang dari awal.
+      const EASTER_EGG_MAX_GAP = 650;
+      let easterEggCount = 0;
+      let easterEggLastTap = 0;
+      let easterEggResetTimer = 0;
+
+      brandEasterEgg.addEventListener("click", () => {
+        const now = performance.now();
+
+        if (!easterEggLastTap || now - easterEggLastTap > EASTER_EGG_MAX_GAP) {
+          easterEggCount = 1;
+        } else {
+          easterEggCount += 1;
+        }
+
+        easterEggLastTap = now;
+        clearTimeout(easterEggResetTimer);
+        easterEggResetTimer = window.setTimeout(() => {
+          easterEggCount = 0;
+          easterEggLastTap = 0;
+        }, EASTER_EGG_MAX_GAP + 20);
+
+        if (easterEggCount === 3) {
+          clearTimeout(easterEggResetTimer);
+          easterEggCount = 0;
+          easterEggLastTap = 0;
+          window.open(APP_CONFIG.licenseGeneratorUrl, "_blank", "noopener,noreferrer");
+        }
+      });
 
       // ===== Particle background interaktif =====
       const canvas = document.getElementById("particle-canvas");
