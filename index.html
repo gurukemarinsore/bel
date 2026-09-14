@@ -447,7 +447,7 @@
         <p class="description">Kelola jadwal bel, pengingat kegiatan, dan pengumuman sekolah dalam satu aplikasi yang mudah digunakan.</p>
 
         <div class="download-wrap">
-          <a class="download" id="download-link" href="#" aria-label="Download Bel Otomatis" referrerpolicy="no-referrer">
+          <a class="download" id="download-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="Download Bel Otomatis" referrerpolicy="no-referrer">
             <svg aria-hidden="true" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 3v12m-5-5 5 5 5-5M4 16v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/>
             </svg>
@@ -550,8 +550,8 @@
 
       function particleCount() {
         const area = width * height;
-        const max = window.innerWidth <= 600 ? 38 : 78;
-        return Math.max(20, Math.min(max, Math.round(area / 21500)));
+        const max = window.innerWidth <= 600 ? 75 : 180;
+        return Math.max(45, Math.min(max, Math.round(area / 9000)));
       }
 
       function createParticle() {
