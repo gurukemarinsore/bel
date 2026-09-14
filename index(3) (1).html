@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1674ff">
+  <meta name="description" content="Download Bel Otomatis, aplikasi desktop untuk mengelola jadwal bel, pengingat kegiatan, dan pengumuman sekolah. Dikembangkan oleh Gurukemarinsore.">
+  <title>Bel Otomatis — Gurukemarinsore</title>
+
+  <!-- =========================================================
+       KONFIGURASI CEPAT — cukup ubah 2 baris ini saat update app.
+       Tempel link SHARE Google Drive biasa; sistem akan otomatis
+       mengubahnya menjadi link direct-download.
+       ========================================================= -->
+  <script>
+    const APP_CONFIG = {
+      version: "1.05.7",
+      driveShareUrl: "https://drive.google.com/file/d/1eq8BnXN-vvMKNbS-67LeFJo1VtgTOI6T/view?usp=sharing"
+    };
+  </script>
+
+  <!-- icon.png berada di folder/repository yang sama dengan index.html -->
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
+
+  <!-- Terapkan theme tersimpan sebelum halaman tampil agar tidak berkedip. -->
+  <script>
+    try {
+      const savedTheme = localStorage.getItem("bel-otomatis-theme");
+      document.documentElement.dataset.theme = savedTheme === "dark" ? "dark" : "light";
+    } catch (_) {
+      document.documentElement.dataset.theme = "light";
+    }
+  </script>
+
+  <style>
+    :root {
+      color-scheme: light;
+      --blue:#1674ff;
+      --blue-hover:#0563ee;
+      --ink:#142440;
+      --muted:#626e82;
+      --yellow:#ffce32;
+      --line:#e5ebf4;
+      --bg:#ffffff;
+      --hero-glow:#f6faff;
+      --symbol-bg:#eff6ff;
+      --symbol-line:#d4e5ff;
+      --orbit:#e5edfa;
+      --orbit-soft:#edf2fa;
+      --button-shadow:#e8f0ff;
+      --toggle-bg:#f5f8fd;
+      --toggle-hover:#edf4ff;
+      --particle-blue:22,116,255;
+      --particle-yellow:255,190,20;
+    }
+
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --blue:#4b91ff;
+      --blue-hover:#67a3ff;
+      --ink:#f3f7ff;
+      --muted:#9aabc2;
+      --yellow:#ffd044;
+      --line:#22324a;
+      --bg:#08111f;
+      --hero-glow:#102440;
+      --symbol-bg:#10223b;
+      --symbol-line:#244a78;
+      --orbit:#203a5d;
+      --orbit-soft:#182e4a;
+      --button-shadow:#102a4f;
+      --toggle-bg:#101d30;
+      --toggle-hover:#172a43;
+      --particle-blue:92,157,255;
+      --particle-yellow:255,208,68;
+    }
+
+    * { box-sizing:border-box; }
+    html { height:100%; background:var(--bg); }
+    body {
+      margin:0;
+      background:var(--bg);
+      color:var(--ink);
+      font-family:"Segoe UI", Arial, sans-serif;
+      -webkit-font-smoothing:antialiased;
+      transition:background-color .28s ease,color .28s ease;
+    }
+
+    .page {
+      position:relative;
+      isolation:isolate;
+      height:100svh;
+      min-height:0;
+      display:grid;
+      grid-template-rows:auto minmax(0,1fr) auto;
+      padding:0 clamp(22px,5vw,80px);
+      overflow:hidden;
+      background:var(--bg);
+      transition:background-color .28s ease;
+    }
+
+    .page::before {
+      content:"";
+      position:absolute;
+      z-index:-3;
+      inset:0;
+      background:radial-gradient(ellipse at 50% 48%,var(--hero-glow) 0,transparent 58%);
+      pointer-events:none;
+      transition:background .28s ease;
+    }
+
+    #particle-canvas {
+      position:absolute;
+      z-index:-2;
+      inset:0;
+      width:100%;
+      height:100%;
+      pointer-events:none;
+    }
+
+    header {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      padding:27px 0;
+      border-bottom:1px solid var(--line);
+      transition:border-color .28s ease;
+    }
+
+    .brand {
+      display:flex;
+      align-items:center;
+      gap:11px;
+      font-size:18px;
+      font-weight:750;
+      letter-spacing:-.6px;
+      white-space:nowrap;
+    }
+
+    .brand-icon {
+      width:35px;
+      height:35px;
+      border-radius:11px;
+      display:block;
+      object-fit:cover;
+      flex-shrink:0;
+      box-shadow:0 0 0 1px color-mix(in srgb,var(--line) 65%,transparent);
+    }
+
+    svg { display:block; flex-shrink:0; }
+
+    .header-actions {
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    .desktop-label {
+      display:flex;
+      align-items:center;
+      gap:9px;
+      color:var(--muted);
+      font-size:13px;
+      font-weight:550;
+      transition:color .28s ease;
+    }
+
+    .theme-toggle {
+      width:42px;
+      height:42px;
+      display:grid;
+      place-items:center;
+      padding:0;
+      border:1px solid var(--line);
+      border-radius:13px;
+      color:var(--ink);
+      background:var(--toggle-bg);
+      cursor:pointer;
+      transition:background-color .18s ease,border-color .18s ease,color .18s ease,transform .18s ease;
+    }
+
+    .theme-toggle:hover { background:var(--toggle-hover); transform:translateY(-1px); }
+    .theme-toggle:active { transform:translateY(1px); }
+    .theme-toggle:focus-visible { outline:3px solid var(--blue); outline-offset:3px; }
+    .theme-toggle .sun { display:none; }
+    html[data-theme="dark"] .theme-toggle .moon { display:none; }
+    html[data-theme="dark"] .theme-toggle .sun { display:block; }
+
+    main { position:relative; display:grid; place-items:center; min-height:0; }
+    .hero { position:relative; z-index:1; width:100%; text-align:center; padding:16px 0; }
+
+    .symbol {
+      position:relative;
+      display:grid;
+      place-items:center;
+      width:82px;
+      height:82px;
+      margin:0 auto 24px;
+      border:1px solid var(--symbol-line);
+      border-radius:25px;
+      background:var(--symbol-bg);
+      transform:rotate(-8deg);
+      transition:background-color .28s ease,border-color .28s ease;
+    }
+
+    .symbol svg { transform:rotate(8deg); }
+    .symbol::after {
+      content:"";
+      position:absolute;
+      width:16px;
+      height:16px;
+      top:-5px;
+      right:-5px;
+      border:4px solid var(--bg);
+      border-radius:50%;
+      background:var(--blue);
+      transition:background-color .28s ease,border-color .28s ease;
+    }
+
+    .eyebrow {
+      margin:0 0 15px;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:700;
+      letter-spacing:3px;
+      text-transform:uppercase;
+    }
+
+    h1 { margin:0; font-size:clamp(48px,7.1vw,100px); line-height:1.03; font-weight:780; letter-spacing:-.065em; }
+    h1 span { color:var(--blue); }
+    h1 .period { color:var(--yellow); }
+    .tagline { margin:19px 0 10px; font-size:clamp(20px,2vw,26px); font-weight:600; letter-spacing:-.6px; }
+    .description { max-width:490px; margin:0 auto; font-size:16px; line-height:1.7; color:var(--muted); text-wrap:pretty; }
+    .download-wrap { margin:29px 0 0; }
+
+    .download {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:65px;
+      padding:0 23px;
+      gap:13px;
+      color:white;
+      background:var(--blue);
+      border:1px solid var(--blue);
+      border-radius:16px;
+      text-decoration:none;
+      box-shadow:0 9px 0 var(--button-shadow);
+      transition:background .18s,transform .18s,box-shadow .18s,border-color .18s;
+    }
+
+    .download:hover { background:var(--blue-hover); border-color:var(--blue-hover); transform:translateY(-3px); box-shadow:0 12px 0 var(--button-shadow); }
+    .download:active { transform:translateY(2px); box-shadow:0 4px 0 var(--button-shadow); }
+    .download:focus-visible { outline:3px solid var(--ink); outline-offset:6px; }
+    .download-text { font-size:18px; font-weight:700; }
+    .version { display:inline-flex; align-items:center; border-left:1px solid #ffffff60; padding-left:14px; margin-left:3px; font-size:14px; font-weight:550; }
+
+    .features {
+      list-style:none;
+      padding:0;
+      margin:29px 0 0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:23px;
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    .features li { display:flex; align-items:center; gap:6px; white-space:nowrap; }
+    .features svg { color:var(--blue); width:15px; height:15px; }
+
+    .orbit {
+      position:absolute;
+      z-index:-1;
+      width:clamp(650px,76vw,1120px);
+      aspect-ratio:1;
+      top:50%;
+      left:50%;
+      transform:translate(-50%,-50%);
+      border:1px solid var(--orbit);
+      border-radius:50%;
+      pointer-events:none;
+      mask-image:linear-gradient(90deg,#000,transparent 30%,transparent 70%,#000);
+      transition:border-color .28s ease;
+    }
+
+    .orbit::before,.orbit::after {
+      content:"";
+      position:absolute;
+      inset:38px;
+      border:1px solid var(--orbit-soft);
+      border-radius:50%;
+      transition:border-color .28s ease;
+    }
+
+    .orbit::after { inset:78px; }
+    .accent { position:absolute; left:6%; top:37%; width:13px; height:47px; background:var(--yellow); border-radius:8px; transform:rotate(32deg); }
+    .accent-right { left:auto; right:6%; top:63%; width:28px; height:28px; border:7px solid var(--blue); border-radius:50%; background:transparent; }
+
+    footer {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:15px;
+      padding:21px 0 23px;
+      border-top:1px solid var(--line);
+      color:var(--muted);
+      font-size:13px;
+      transition:border-color .28s ease,color .28s ease;
+    }
+
+    footer p { margin:0; }
+    footer strong { color:var(--ink); font-weight:650; }
+    .footer-note { display:flex; align-items:center; gap:8px; }
+    .footer-note::before { content:""; width:18px; height:4px; border-radius:3px; background:var(--yellow); }
+
+    @media (min-height:850px) {
+      .symbol { margin-bottom:32px; }
+      .download-wrap { margin-top:35px; }
+      .features { margin-top:35px; }
+    }
+
+    @media (max-width:600px) {
+      header { padding:20px 0; }
+      .brand { font-size:16px; }
+      .desktop-label { font-size:12px; }
+      .desktop-label svg { display:none; }
+      .header-actions { gap:8px; }
+      .theme-toggle { width:39px; height:39px; border-radius:12px; }
+      .hero { padding:12px 0; }
+      .symbol { width:72px; height:72px; border-radius:23px; margin-bottom:22px; }
+      h1 { font-size:clamp(43px,10.3vw,62px); }
+      .eyebrow { font-size:11px; letter-spacing:2.2px; }
+      .tagline { margin-top:19px; font-size:20px; }
+      .description { max-width:340px; font-size:15px; line-height:1.65; }
+      .download { min-height:62px; padding:0 20px; }
+      .features { gap:13px; font-size:12px; }
+      .features li { gap:4px; }
+      footer { justify-content:center; text-align:center; padding:19px 0; font-size:12px; }
+      .footer-note { display:none; }
+      .accent { left:0; top:15%; width:9px; height:30px; }
+      .accent-right { left:auto; right:0; top:79%; width:19px; height:19px; border-width:5px; }
+    }
+
+    @media (max-width:430px) {
+      .desktop-label { display:none; }
+    }
+
+    @media (max-height:700px) {
+      header { padding:16px 0; }
+      .symbol { width:62px; height:62px; margin-bottom:16px; border-radius:19px; }
+      .symbol svg { width:40px; height:40px; }
+      h1 { font-size:clamp(43px,6.4vw,78px); }
+      .eyebrow { margin-bottom:10px; }
+      .tagline { margin-top:13px; }
+      .download-wrap { margin-top:20px; }
+      .features { margin-top:23px; }
+      footer { padding-top:16px; padding-bottom:16px; }
+    }
+
+    @media (max-height:570px) {
+      header { padding:10px 0; }
+      .symbol { display:none; }
+      .hero { padding:8px 0; }
+      .description { font-size:14px; line-height:1.5; }
+      .tagline { margin:10px 0 6px; font-size:20px; }
+      .download-wrap { margin-top:16px; }
+      .download { min-height:53px; }
+      .features { margin-top:19px; }
+      footer { padding:12px 0; }
+    }
+
+    @media (max-height:430px) {
+      .eyebrow,.features { display:none; }
+      h1 { font-size:42px; }
+      .description { max-width:560px; }
+      .download-wrap { margin-top:12px; }
+      .download { min-height:46px; }
+      .brand-icon { width:28px; height:28px; border-radius:9px; }
+      .theme-toggle { width:34px; height:34px; border-radius:10px; }
+      footer { font-size:12px; padding:9px 0; }
+    }
+
+    @media (prefers-reduced-motion:reduce) {
+      *,*::before,*::after { scroll-behavior:auto !important; transition-duration:.001ms !important; animation-duration:.001ms !important; animation-iteration-count:1 !important; }
+    }
+
+    /* Pada pembesaran teks ekstrem, akses konten didahulukan dari batas satu layar. */
+    @media (max-width:280px), (max-height:320px) {
+      .page { height:auto; min-height:100svh; }
+      .hero { padding:24px 0; }
+      .desktop-label { display:none; }
+      .download { flex-wrap:wrap; padding:12px; gap:8px; }
+      .features { flex-wrap:wrap; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <canvas id="particle-canvas" aria-hidden="true"></canvas>
+
+    <header>
+      <div class="brand">
+        <img class="brand-icon" src="icon.png" alt="" aria-hidden="true">
+        Bel Otomatis
+      </div>
+
+      <div class="header-actions">
+        <span class="desktop-label">
+          <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <rect x="3" y="4" width="18" height="13" rx="2"/>
+            <path d="M8 21h8m-4-4v4"/>
+          </svg>
+          Aplikasi desktop
+        </span>
+
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Aktifkan mode malam" title="Ganti tema">
+          <svg class="moon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z"/>
+          </svg>
+          <svg class="sun" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <div class="orbit" aria-hidden="true"></div>
+      <span class="accent" aria-hidden="true"></span>
+      <span class="accent accent-right" aria-hidden="true"></span>
+
+      <section class="hero" aria-labelledby="title">
+        <div class="symbol" aria-hidden="true">
+          <svg width="49" height="49" viewBox="0 0 24 24" fill="#ffbd00">
+            <path d="M12 2a1 1 0 0 1 1 1v.1A7 7 0 0 1 19 10v5l2 3v1H3v-1l2-3v-5a7 7 0 0 1 6-6.9V3a1 1 0 0 1 1-1Zm-3 19h6a3 3 0 0 1-6 0Z"/>
+          </svg>
+        </div>
+
+        <p class="eyebrow">Ritme sekolah, lebih teratur</p>
+        <h1 id="title">Bel <span>Otomatis</span><span class="period">.</span></h1>
+        <p class="tagline">Setiap bel, tepat pada waktunya.</p>
+        <p class="description">Kelola jadwal bel, pengingat kegiatan, dan pengumuman sekolah dalam satu aplikasi yang mudah digunakan.</p>
+
+        <div class="download-wrap">
+          <a class="download" id="download-link" href="#" aria-label="Download Bel Otomatis" referrerpolicy="no-referrer">
+            <svg aria-hidden="true" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3v12m-5-5 5 5 5-5M4 16v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/>
+            </svg>
+            <span class="download-text">Download</span>
+            <span class="version" id="app-version"></span>
+          </a>
+        </div>
+
+        <ul class="features" aria-label="Fitur aplikasi">
+          <li><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M16 3v4M8 3v4M4 11h16m-12 4h3"/></svg>Jadwal bel</li>
+          <li><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18V5l12-2v13M9 9l12-2"/><ellipse cx="6" cy="18" rx="3" ry="3"/><ellipse cx="18" cy="16" rx="3" ry="3"/></svg>Pengujian nada</li>
+          <li><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="m3 9 17-5v16L3 15V9Zm4 7 1 5h4l-2-4M20 9l2 1v4l-2 1"/></svg>Pengumuman</li>
+        </ul>
+      </section>
+    </main>
+
+    <footer>
+      <p>Dikembangkan oleh <strong>Gurukemarinsore</strong></p>
+      <span class="footer-note">Untuk ritme belajar yang lebih baik.</span>
+    </footer>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const root = document.documentElement;
+      const themeToggle = document.getElementById("theme-toggle");
+      const versionEl = document.getElementById("app-version");
+      const downloadLink = document.getElementById("download-link");
+      const themeMeta = document.querySelector('meta[name="theme-color"]');
+
+      function extractDriveFileId(url) {
+        const value = String(url || "").trim();
+        const pathMatch = value.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (pathMatch) return pathMatch[1];
+
+        try {
+          const parsed = new URL(value);
+          return parsed.searchParams.get("id") || "";
+        } catch (_) {
+          return "";
+        }
+      }
+
+      function buildDirectDriveUrl(shareUrl) {
+        const fileId = extractDriveFileId(shareUrl);
+        if (!fileId) return shareUrl;
+        return `https://drive.usercontent.google.com/download?id=${encodeURIComponent(fileId)}&export=download&confirm=t`;
+      }
+
+      const normalizedVersion = String(APP_CONFIG.version || "").trim().replace(/^v/i, "");
+      versionEl.textContent = normalizedVersion ? `v${normalizedVersion}` : "";
+      downloadLink.href = buildDirectDriveUrl(APP_CONFIG.driveShareUrl);
+      downloadLink.setAttribute("aria-label", normalizedVersion ? `Download Bel Otomatis versi ${normalizedVersion}` : "Download Bel Otomatis");
+
+      function currentTheme() {
+        return root.dataset.theme === "dark" ? "dark" : "light";
+      }
+
+      function syncThemeUi() {
+        const dark = currentTheme() === "dark";
+        themeToggle.setAttribute("aria-label", dark ? "Aktifkan mode terang" : "Aktifkan mode malam");
+        themeToggle.title = dark ? "Mode terang" : "Mode malam";
+        if (themeMeta) themeMeta.content = dark ? "#08111f" : "#1674ff";
+      }
+
+      themeToggle.addEventListener("click", () => {
+        const nextTheme = currentTheme() === "dark" ? "light" : "dark";
+        root.dataset.theme = nextTheme;
+        try { localStorage.setItem("bel-otomatis-theme", nextTheme); } catch (_) {}
+        syncThemeUi();
+      });
+
+      syncThemeUi();
+
+      // ===== Particle background interaktif =====
+      const canvas = document.getElementById("particle-canvas");
+      const ctx = canvas.getContext("2d", { alpha:true });
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+      const particles = [];
+      const pointer = { x:0, y:0, active:false };
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
+      let animationId = 0;
+      let lastTime = performance.now();
+      let resizeTimer = 0;
+
+      function readParticleColors() {
+        const styles = getComputedStyle(root);
+        return {
+          blue: styles.getPropertyValue("--particle-blue").trim() || "22,116,255",
+          yellow: styles.getPropertyValue("--particle-yellow").trim() || "255,190,20"
+        };
+      }
+
+      let particleColors = readParticleColors();
+
+      function particleCount() {
+        const area = width * height;
+        const max = window.innerWidth <= 600 ? 38 : 78;
+        return Math.max(20, Math.min(max, Math.round(area / 21500)));
+      }
+
+      function createParticle() {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 6 + Math.random() * 10;
+        return {
+          x: Math.random() * width,
+          y: Math.random() * height,
+          angle,
+          speed,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          radius: .8 + Math.random() * 1.6,
+          alpha: .18 + Math.random() * .34,
+          yellow: Math.random() < .14
+        };
+      }
+
+      function populateParticles() {
+        const target = particleCount();
+        while (particles.length < target) particles.push(createParticle());
+        if (particles.length > target) particles.length = target;
+      }
+
+      function resizeCanvas() {
+        const rect = canvas.getBoundingClientRect();
+        width = Math.max(1, rect.width);
+        height = Math.max(1, rect.height);
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        populateParticles();
+      }
+
+      function wrapParticle(p) {
+        const margin = 8;
+        if (p.x < -margin) p.x = width + margin;
+        else if (p.x > width + margin) p.x = -margin;
+        if (p.y < -margin) p.y = height + margin;
+        else if (p.y > height + margin) p.y = -margin;
+      }
+
+      function updateParticle(p, dt) {
+        p.angle += (Math.random() - .5) * .22 * dt;
+        const targetVx = Math.cos(p.angle) * p.speed;
+        const targetVy = Math.sin(p.angle) * p.speed;
+        const steering = Math.min(1, dt * .75);
+        p.vx += (targetVx - p.vx) * steering;
+        p.vy += (targetVy - p.vy) * steering;
+
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+
+        if (pointer.active) {
+          const dx = p.x - pointer.x;
+          const dy = p.y - pointer.y;
+          const distanceSq = dx * dx + dy * dy;
+          const radius = 115;
+
+          if (distanceSq > .01 && distanceSq < radius * radius) {
+            const distance = Math.sqrt(distanceSq);
+            const strength = Math.pow(1 - distance / radius, 2);
+            const push = strength * 120 * dt;
+            p.x += (dx / distance) * push;
+            p.y += (dy / distance) * push;
+          }
+        }
+
+        wrapParticle(p);
+      }
+
+      function drawParticles() {
+        ctx.clearRect(0, 0, width, height);
+
+        for (const p of particles) {
+          const rgb = p.yellow ? particleColors.yellow : particleColors.blue;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${rgb},${p.alpha})`;
+          ctx.fill();
+        }
+      }
+
+      function frame(now) {
+        const dt = Math.min(.035, Math.max(.001, (now - lastTime) / 1000));
+        lastTime = now;
+
+        for (const p of particles) updateParticle(p, dt);
+        drawParticles();
+        animationId = requestAnimationFrame(frame);
+      }
+
+      if (finePointer) {
+        window.addEventListener("pointermove", event => {
+          const rect = canvas.getBoundingClientRect();
+          pointer.x = event.clientX - rect.left;
+          pointer.y = event.clientY - rect.top;
+          pointer.active = pointer.x >= 0 && pointer.x <= width && pointer.y >= 0 && pointer.y <= height;
+        }, { passive:true });
+
+        window.addEventListener("pointerleave", () => { pointer.active = false; }, { passive:true });
+      }
+
+      window.addEventListener("resize", () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(resizeCanvas, 100);
+      }, { passive:true });
+
+      new MutationObserver(() => {
+        particleColors = readParticleColors();
+        if (reduceMotion) drawParticles();
+      }).observe(root, { attributes:true, attributeFilter:["data-theme"] });
+
+      resizeCanvas();
+
+      if (reduceMotion) {
+        drawParticles();
+      } else {
+        animationId = requestAnimationFrame(frame);
+      }
+
+      window.addEventListener("pagehide", () => {
+        if (animationId) cancelAnimationFrame(animationId);
+      }, { once:true });
+    })();
+  </script>
+</body>
+</html>
