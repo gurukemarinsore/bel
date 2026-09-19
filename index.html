@@ -8,14 +8,15 @@
   <title>Bel Otomatis — Gurukemarinsore</title>
 
   <!-- =========================================================
-       KONFIGURASI CEPAT — cukup ubah 2 baris ini saat update app.
-       Tempel link SHARE Google Drive biasa; sistem akan otomatis
-       mengubahnya menjadi link direct-download.
+       KONFIGURASI GITHUB RELEASE
+       Versi dan link download TIDAK perlu diubah lagi di HTML.
+       Website membaca release stabil dengan versi numerik tertinggi
+       dari repository GitHub ini (contoh: 1.5.11 > 1.5.7).
        ========================================================= -->
   <script>
     const APP_CONFIG = {
-      version: "1.05.7",
-      driveShareUrl: "https://github.com/gurukemarinsore/bel/releases/download/v1.5.7/BelOtomatis.exe",
+      githubOwner: "gurukemarinsore",
+      githubRepo: "bel",
       licenseGeneratorUrl: "https://script.google.com/macros/s/AKfycbwxT_X6aAoCe9AXRCK_oIusagk9YkPVdQYfC8UxL6uT5z8LjWCLil0hXeSxdHG7gCHwGw/exec"
     };
   </script>
@@ -505,29 +506,164 @@
       const downloadLink = document.getElementById("download-link");
       const themeMeta = document.querySelector('meta[name="theme-color"]');
 
-      function extractDriveFileId(url) {
-        const value = String(url || "").trim();
-        const pathMatch = value.match(/\/d\/([a-zA-Z0-9_-]+)/);
-        if (pathMatch) return pathMatch[1];
+      // ===== GitHub Release otomatis =====
+      // Membandingkan setiap segmen sebagai bilangan bulat, bukan teks.
+      // Contoh: 1.5.11 lebih baru daripada 1.5.7.
+      const RELEASE_CACHE_KEY = "bel-otomatis-github-release-v2";
+      const RELEASE_CACHE_TTL = 10 * 60 * 1000; // 10 menit
 
+      function parseNumericVersion(tag) {
+        const clean = String(tag || "").trim().replace(/^v/i, "");
+        const match = clean.match(/^(\d+(?:\.\d+)*)(?:[-+].*)?$/);
+        if (!match) return null;
+
+        const segments = match[1].split(".").map(part => Number.parseInt(part, 10));
+        if (segments.some(number => !Number.isFinite(number))) return null;
+
+        return {
+          segments,
+          normalized: segments.join(".")
+        };
+      }
+
+      function compareVersionSegments(a, b) {
+        const length = Math.max(a.length, b.length);
+        for (let i = 0; i < length; i += 1) {
+          const left = a[i] ?? 0;
+          const right = b[i] ?? 0;
+          if (left !== right) return left > right ? 1 : -1;
+        }
+        return 0;
+      }
+
+      function selectHighestStableRelease(releases) {
+        const stable = Array.isArray(releases)
+          ? releases.filter(release => release && !release.draft && !release.prerelease)
+          : [];
+
+        const numeric = stable
+          .map(release => ({ release, version: parseNumericVersion(release.tag_name) }))
+          .filter(item => item.version);
+
+        numeric.sort((a, b) => {
+          const versionOrder = compareVersionSegments(b.version.segments, a.version.segments);
+          if (versionOrder !== 0) return versionOrder;
+          return new Date(b.release.published_at || 0) - new Date(a.release.published_at || 0);
+        });
+
+        if (numeric.length) return numeric[0];
+        if (!stable.length) return null;
+
+        // Fallback jika tag tidak berbentuk versi angka: gunakan release terbaru dari GitHub.
+        const release = stable[0];
+        return {
+          release,
+          version: {
+            segments: [],
+            normalized: String(release.tag_name || "").trim().replace(/^v/i, "")
+          }
+        };
+      }
+
+      function chooseReleaseAsset(assets) {
+        if (!Array.isArray(assets) || !assets.length) return null;
+        const priorities = [".exe", ".msi", ".zip"];
+
+        for (const extension of priorities) {
+          const match = assets.find(asset =>
+            String(asset?.name || "").toLowerCase().endsWith(extension)
+          );
+          if (match) return match;
+        }
+
+        return assets[0] || null;
+      }
+
+      function applyReleaseData(data) {
+        if (!data || !data.version) return false;
+
+        versionEl.textContent = `v${data.version}`;
+        downloadLink.href = data.downloadUrl || data.releaseUrl || "#";
+        downloadLink.setAttribute("aria-label", `Download Bel Otomatis versi ${data.version}`);
+        downloadLink.title = data.assetName
+          ? `Download ${data.assetName}`
+          : `Bel Otomatis v${data.version}`;
+        return Boolean(data.downloadUrl || data.releaseUrl);
+      }
+
+      function readReleaseCache() {
         try {
-          const parsed = new URL(value);
-          return parsed.searchParams.get("id") || "";
+          const raw = localStorage.getItem(RELEASE_CACHE_KEY);
+          if (!raw) return null;
+          const cached = JSON.parse(raw);
+          if (!cached || !cached.savedAt || !cached.data) return null;
+          return cached;
         } catch (_) {
-          return "";
+          return null;
         }
       }
 
-      function buildDirectDriveUrl(shareUrl) {
-        const fileId = extractDriveFileId(shareUrl);
-        if (!fileId) return shareUrl;
-        return `https://drive.usercontent.google.com/download?id=${encodeURIComponent(fileId)}&export=download&confirm=t`;
+      function writeReleaseCache(data) {
+        try {
+          localStorage.setItem(RELEASE_CACHE_KEY, JSON.stringify({
+            savedAt: Date.now(),
+            data
+          }));
+        } catch (_) {}
       }
 
-      const normalizedVersion = String(APP_CONFIG.version || "").trim().replace(/^v/i, "");
-      versionEl.textContent = normalizedVersion ? `v${normalizedVersion}` : "";
-      downloadLink.href = buildDirectDriveUrl(APP_CONFIG.driveShareUrl);
-      downloadLink.setAttribute("aria-label", normalizedVersion ? `Download Bel Otomatis versi ${normalizedVersion}` : "Download Bel Otomatis");
+      async function loadLatestRelease() {
+        const cached = readReleaseCache();
+        const cacheFresh = cached && (Date.now() - cached.savedAt < RELEASE_CACHE_TTL);
+
+        if (cached?.data) applyReleaseData(cached.data);
+        if (cacheFresh) return;
+
+        const owner = encodeURIComponent(APP_CONFIG.githubOwner);
+        const repo = encodeURIComponent(APP_CONFIG.githubRepo);
+        const apiUrl = `https://api.github.com/repos/${owner}/${repo}/releases?per_page=30`;
+
+        try {
+          const response = await fetch(apiUrl, {
+            headers: {
+              Accept: "application/vnd.github+json",
+              "X-GitHub-Api-Version": "2022-11-28"
+            },
+            cache: "no-store"
+          });
+
+          if (!response.ok) throw new Error(`GitHub API: ${response.status}`);
+
+          const releases = await response.json();
+          const selected = selectHighestStableRelease(releases);
+          if (!selected) throw new Error("Release stabil belum tersedia.");
+
+          const asset = chooseReleaseAsset(selected.release.assets);
+          const data = {
+            version: selected.version.normalized || String(selected.release.tag_name || "").replace(/^v/i, ""),
+            downloadUrl: asset?.browser_download_url || "",
+            assetName: asset?.name || "",
+            releaseUrl: selected.release.html_url || `https://github.com/${APP_CONFIG.githubOwner}/${APP_CONFIG.githubRepo}/releases/latest`
+          };
+
+          applyReleaseData(data);
+          writeReleaseCache(data);
+        } catch (error) {
+          console.warn("Tidak dapat membaca GitHub Release:", error);
+
+          if (!cached?.data) {
+            versionEl.textContent = "GitHub";
+            downloadLink.href = `https://github.com/${APP_CONFIG.githubOwner}/${APP_CONFIG.githubRepo}/releases/latest`;
+            downloadLink.setAttribute("aria-label", "Buka release terbaru Bel Otomatis di GitHub");
+            downloadLink.title = "Buka GitHub Releases";
+          }
+        }
+      }
+
+      // Tampilkan fallback yang aman sambil menunggu GitHub API.
+      versionEl.textContent = "...";
+      downloadLink.href = `https://github.com/${APP_CONFIG.githubOwner}/${APP_CONFIG.githubRepo}/releases/latest`;
+      loadLatestRelease();
 
       function currentTheme() {
         return root.dataset.theme === "dark" ? "dark" : "light";
