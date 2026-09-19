@@ -509,8 +509,9 @@
       // ===== GitHub Release otomatis =====
       // Membandingkan setiap segmen sebagai bilangan bulat, bukan teks.
       // Contoh: 1.5.11 lebih baru daripada 1.5.7.
-      const RELEASE_CACHE_KEY = "bel-otomatis-github-release-v2";
-      const RELEASE_CACHE_TTL = 10 * 60 * 1000; // 10 menit
+      const RELEASE_CACHE_KEY = "bel-otomatis-github-release-v3";
+      // Cache hanya dipakai agar tombol langsung terisi dan sebagai fallback jika GitHub gagal.
+      // Setiap halaman dibuka, GitHub tetap dicek agar perubahan nama asset pada tag yang sama ikut terbaca.
 
       function parseNumericVersion(tag) {
         const clean = String(tag || "").trim().replace(/^v/i, "");
@@ -614,10 +615,10 @@
 
       async function loadLatestRelease() {
         const cached = readReleaseCache();
-        const cacheFresh = cached && (Date.now() - cached.savedAt < RELEASE_CACHE_TTL);
 
+        // Tampilkan cache lebih dulu agar tombol siap tanpa menunggu jaringan.
+        // Namun JANGAN berhenti di cache: setiap pemuatan halaman tetap mengecek GitHub.
         if (cached?.data) applyReleaseData(cached.data);
-        if (cacheFresh) return;
 
         const owner = encodeURIComponent(APP_CONFIG.githubOwner);
         const repo = encodeURIComponent(APP_CONFIG.githubRepo);
