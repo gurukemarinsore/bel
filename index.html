@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#1674ff">
-  <meta name="description" content="Download Bel Otomatis, aplikasi desktop untuk mengelola jadwal bel, pengingat kegiatan, dan pengumuman sekolah. Dikembangkan oleh Gurukemarinsore.">
+  <meta name="description" content="Download Bel Otomatis, aplikasi Windows untuk mengelola jadwal bel, pengingat pergantian kegiatan, pengujian nada, dan pengumuman. Dikembangkan oleh Gurukemarinsore.">
   <title>Bel Otomatis — Gurukemarinsore</title>
 
   <!-- =========================================================
@@ -336,7 +336,21 @@
     }
 
     footer p { margin:0; }
-    footer strong { color:var(--ink); font-weight:650; }
+    .developer-link {
+      color:var(--ink);
+      font-weight:650;
+      text-decoration:none;
+      text-underline-offset:3px;
+    }
+    .developer-link:hover {
+      color:var(--blue);
+      text-decoration:underline;
+    }
+    .developer-link:focus-visible {
+      outline:2px solid var(--blue);
+      outline-offset:3px;
+      border-radius:3px;
+    }
     .footer-note { display:flex; align-items:center; gap:8px; }
     .footer-note::before { content:""; width:18px; height:4px; border-radius:3px; background:var(--yellow); }
 
@@ -428,7 +442,7 @@
     <header>
       <div class="brand">
         <button class="brand-icon-trigger" id="brand-easter-egg" type="button" aria-label="Bel Otomatis" title="Bel Otomatis">
-          <img class="brand-icon" src="icon.png" alt="" aria-hidden="true" draggable="false" onerror="this.onerror=null;this.src='https://i.imgur.com/FNXZz5a.png';">
+          <img class="brand-icon" src="icon.png" alt="" aria-hidden="true" draggable="false" onerror="this.onerror=null;this.src='https://i.imgur.com/lXaumX9.png';">
         </button>
         Bel Otomatis
       </div>
@@ -439,7 +453,7 @@
             <rect x="3" y="4" width="18" height="13" rx="2"/>
             <path d="M8 21h8m-4-4v4"/>
           </svg>
-          Aplikasi desktop
+          Aplikasi Windows
         </span>
 
         <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Aktifkan mode malam" title="Ganti tema">
@@ -466,10 +480,10 @@
           </svg>
         </div>
 
-        <p class="eyebrow">Ritme sekolah, lebih teratur</p>
+        <p class="eyebrow">Ritme aktivitas, lebih teratur</p>
         <h1 id="title">Bel <span>Otomatis</span><span class="period">.</span></h1>
         <p class="tagline">Setiap bel, tepat pada waktunya.</p>
-        <p class="description">Kelola jadwal bel, pengingat kegiatan, dan pengumuman sekolah dalam satu aplikasi yang mudah digunakan.</p>
+        <p class="description">Aplikasi Windows untuk mengelola jadwal bel, pengingat pergantian kegiatan, pengujian nada, dan pengumuman dengan mudah.</p>
 
         <div class="download-wrap">
           <a class="download" id="download-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="Download Bel Otomatis" referrerpolicy="no-referrer">
@@ -490,8 +504,8 @@
     </main>
 
     <footer>
-      <p>Dikembangkan oleh <strong>Gurukemarinsore</strong></p>
-      <span class="footer-note">Untuk ritme belajar yang lebih baik.</span>
+      <p>Dikembangkan oleh <a class="developer-link" href="https://www.tiktok.com/@gurukemarinsore" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Buka TikTok Gurukemarinsore">Gurukemarinsore</a></p>
+      <span class="footer-note">Untuk aktivitas yang lebih teratur.</span>
     </footer>
   </div>
 
